@@ -1,59 +1,109 @@
 pipeline {
-    agent any 
+    agent any
     tools {
-        maven "3.9.9"
+        maven '3.9.9'
     }
     stages {
-        stage('Check JDK') {
-                steps {
-                    sh "echo JAVA_HOME = $JAVA_HOME"
-                    sh "java -version"
-                    sh "javac -version"
+        stage('Verify Tools') {
+            steps {
+                echo "Verifying Java, Maven, Git, and Docker versions"
+                sh """
+
+
+                    # Maven check
+                    MAVEN_VER=\$(mvn -v | awk 'NR==1{print \$3}')
+                    echo "Detected Maven version: \$MAVEN_VER"
+                    MAVEN_MAJOR=\$(echo \$MAVEN_VER | awk -F. '{print \$1}')
+                    if [ "\$MAVEN_MAJOR" -lt 3 ]; then
+                        echo "ERROR: Maven 3.x or higher is required!"
+                        exit 1
+                    fi
+
+                    # Git check
+                    GIT_VER=\$(git --version | awk '{print \$3}')
+                    echo "Detected Git version: \$GIT_VER"
+                    GIT_MAJOR=\$(echo \$GIT_VER | awk -F. '{print \$1}')
+                    if [ "\$GIT_MAJOR" -lt 2 ]; then
+                        echo "ERROR: Git 2.x or higher is required!"
+                        exit 1
+                    fi
+
+                    # Docker check
+                    DOCKER_VER=\$(docker --version | awk '{print \$3}' | sed 's/,//')
+                    echo "Detected Docker version: \$DOCKER_VER"
+                    DOCKER_MAJOR=\$(echo \$DOCKER_VER | awk -F. '{print \$1}')
+                    if [ "\$DOCKER_MAJOR" -lt 20 ]; then
+                        echo "ERROR: Docker 20.x or higher is required!"
+                        exit 1
+                    fi
+                """
+            }
+        }
+
+        stage('Compile and Clean') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn package'
+            }
+        }
+
+        stage('Docker Cleanup') {
+            steps {
+                echo "Cleaning up old Docker containers and images"
+                sh """
+                    # Stop any container using port 8888
+                    OLD_CONTAINER=\$(docker ps -q -f "publish=8888")
+                    if [ ! -z "\$OLD_CONTAINER" ]; then
+                        echo "Stopping old container: \$OLD_CONTAINER"
+                        docker stop \$OLD_CONTAINER
+                        docker rm \$OLD_CONTAINER
+                    fi
+
+                    # Remove old images with the same name
+                    OLD_IMAGE=\$(docker images -q dhileepan1989/demo-app)
+                    if [ ! -z "\$OLD_IMAGE" ]; then
+                        echo "Removing old image: \$OLD_IMAGE"
+                        docker rmi -f \$OLD_IMAGE
+                    fi
+                """
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Building Docker image"
+                sh 'docker build -t dhileepan1989/demo-app:${BUILD_NUMBER} .'
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([string(credentialsId: 'DockerId', variable: 'Dockerpwd')]) {
+                    sh 'docker login -u dhileepan1989 -p ${Dockerpwd}'
                 }
-        }
-        stage('Compile and Clean') { 
-            steps {
-                // Run Maven on a Unix agent.
-              
-                sh "mvn clean compile"
             }
         }
-        stage('deploy') { 
-            
-            steps {
-                sh "mvn package"
-            }
-        }
-        stage('Build Docker image'){
-          
-            steps {
-                echo "Hello Java Express"
-                sh 'ls'
-                sh 'docker build -t  dhileepan1989/demo-app:${BUILD_NUMBER} .'
-            }
-        }
-        stage('Docker Login'){
-            
-            steps {
-                 withCredentials([string(credentialsId: 'DockerId', variable: 'Dockerpwd')]) {
-                    sh "docker login -u dhileepan1989 -p ${Dockerpwd}"
-                }
-            }                
-        }
-        stage('Docker Push'){
+
+        stage('Docker Push') {
             steps {
                 sh 'docker push dhileepan1989/demo-app:${BUILD_NUMBER}'
             }
         }
-        stage('Docker deploy'){
+
+        stage('Docker Deploy') {
             steps {
-               
-                sh 'docker run -itd -p  8888:8080 dhileepan1989/demo-app:${BUILD_NUMBER}'
+                sh 'docker run -itd -p 8088:8088 dhileepan1989/demo-app:${BUILD_NUMBER}'
             }
         }
-        stage('Archving') { 
+
+        stage('Archive Artifacts') {
             steps {
-                 archiveArtifacts '**/target/*.jar'
+                archiveArtifacts '**/target/*.jar'
             }
         }
     }
