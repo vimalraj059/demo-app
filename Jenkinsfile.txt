@@ -56,8 +56,8 @@ pipeline {
             steps {
                 echo "Cleaning up old Docker containers and images"
                 sh """
-                    # Stop any container using port 8888
-                    OLD_CONTAINER=\$(docker ps -q -f "publish=8888")
+                    # Stop any container using port 8088
+                    OLD_CONTAINER=\$(docker ps -q -f "publish=8088")
                     if [ ! -z "\$OLD_CONTAINER" ]; then
                         echo "Stopping old container: \$OLD_CONTAINER"
                         docker stop \$OLD_CONTAINER
