@@ -2,9 +2,15 @@ pipeline {
     agent any 
     tools {
         maven "3.9.9"
-        jdk "jdk21"
     }
     stages {
+        stage('Check JDK') {
+                steps {
+                    sh "echo JAVA_HOME = $JAVA_HOME"
+                    sh "java -version"
+                    sh "javac -version"
+                }
+        }
         stage('Compile and Clean') { 
             steps {
                 // Run Maven on a Unix agent.
