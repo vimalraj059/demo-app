@@ -77,14 +77,14 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image"
-                sh 'docker build -t dhileepan1989/demo-app:${BUILD_NUMBER} .'
+                sh 'docker build -t vimalraj059/demo-app:${BUILD_NUMBER} .'
             }
         }
 
         stage('Docker Login') {
             steps {
                 withCredentials([string(credentialsId: 'DockerId', variable: 'Dockerpwd')]) {
-                    sh 'docker login -u dhileepan1989 -p ${Dockerpwd}'
+                    sh 'docker login -u vimalraj059 -p ${Dockerpwd}'
                 }
             }
         }
