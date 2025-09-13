@@ -65,7 +65,7 @@ pipeline {
                     fi
 
                     # Remove old images with the same name
-                    OLD_IMAGE=\$(docker images -q dhileepan1989/demo-app)
+                    OLD_IMAGE=\$(docker images -q vimalic/demo-app)
                     if [ ! -z "\$OLD_IMAGE" ]; then
                         echo "Removing old image: \$OLD_IMAGE"
                         docker rmi -f \$OLD_IMAGE
@@ -77,27 +77,27 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image"
-                sh 'docker build -t vimalraj059/demo-app:${BUILD_NUMBER} .'
+                sh 'docker build -t vimalic/demo-app:${BUILD_NUMBER} .'
             }
         }
 
         stage('Docker Login') {
             steps {
                 withCredentials([string(credentialsId: 'DockerId', variable: 'Dockerpwd')]) {
-                    sh 'docker login -u vimalraj059 -p ${Dockerpwd}'
+                    sh 'docker login -u vimalic -p ${Dockerpwd}'
                 }
             }
         }
 
         stage('Docker Push') {
             steps {
-                sh 'docker push dhileepan1989/demo-app:${BUILD_NUMBER}'
+                sh 'docker push vimalic/demo-app:${BUILD_NUMBER}'
             }
         }
 
         stage('Docker Deploy') {
             steps {
-                sh 'docker run -itd -p 8088:8088 dhileepan1989/demo-app:${BUILD_NUMBER}'
+                sh 'docker run -itd -p 8088:8088 vimalic/demo-app:${BUILD_NUMBER}'
             }
         }
 
